@@ -57,9 +57,11 @@ class DbConnectPostgres:
         """
         # SQLの実行
         if bind_var is None:
+            print(sql)
             self.cursor.execute(sql)
         else:
             # バインド変数がある場合は指定して実行
+            print(sql)
             self.cursor.execute(sql, bind_var)
         result = []
         if count == 0:

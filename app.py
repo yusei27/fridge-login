@@ -11,11 +11,32 @@ def register_user():
     print("ユーザー登録API実行")
     requeat_data = request.get_json()
     print("リクエスト", requeat_data)
-    hash_password("yusei9981")
 
-    print("db接続")
-    db_connect = db.DbConnectPostgres()
-    
+    #リクエストデータからユーザ登録に必要な情報を取得    
+    user_name, user_email, user_password, user_password_confirm = get_register_user_data(requeat_data)
+    if user_password == user_password_confirm:
+        hashed_password = hash_password(user_password)
+        
+        sql = f"""
+            INSERT INTO "fridge-system".user_table
+            (username, mail, password)
+                VALUES (%s, %s, %s);    
+        """
+        try:
+            print("db接続")
+            db_connect = db.DbConnectPostgres()
+            db_connect.execute_non_query(sql=sql, bind_var=(user_name, user_email, hashed_password))
+            db_connect.commit()
+        except Exception as e:
+            print(e)
+            db_connect.rollback()
+            print("ロールバックを実行しました。")
+            return jsonify({'status':300, 'data':3})
+	
+
+    else:
+        print("パスワードと確認用パスワードが異なります")
+        return jsonify({'status':300, 'data':3})
     return jsonify({'status':200, 'data':3})
 
 
@@ -23,14 +44,23 @@ def hash_password(password):
     import os
     import base64
     import hashlib
-    
+    #ソルトを生成
     salt = os.urandom(32)
     print("salt", salt)
     salt_encode = base64.b64encode(salt)
-
+    #パスワードにソルトを付与してハッシュ値生成
     hash_value = hashlib.sha256(password.encode() + salt_encode)
     print(hash_value)
     print("hash16", hash_value.hexdigest())#ハッシュオブジェクトからハッシュ値(16進数文字列)取得,sha256は16進数もじれt５うを生成する仕組み
+    return hash_value.hexdigest()
+
+def get_register_user_data(request_data):
+    user_name = request_data["user"]["name"]
+    user_email = request_data["user"]["email"]
+    user_password = request_data["user"]["password"]
+    user_password_confirm = request_data["user"]["password_confirm"]
+
+    return user_name, user_email, user_password, user_password_confirm
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3333, debug=True)
