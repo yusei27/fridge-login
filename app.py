@@ -15,17 +15,17 @@ def register_user():
     #リクエストデータからユーザ登録に必要な情報を取得    
     user_name, user_email, user_password, user_password_confirm = get_register_user_data(requeat_data)
     if user_password == user_password_confirm:
-        hashed_password = hash_password(user_password)
+        hashed_password, salt = hash_password(user_password)
         
         sql = f"""
             INSERT INTO "fridge-system".user_table
-            (username, mail, password)
-                VALUES (%s, %s, %s);    
+            (name_user, mail, password, salt)
+                VALUES (%s, %s, %s, %s);    
         """
         try:
             print("db接続")
             db_connect = db.DbConnectPostgres()
-            db_connect.execute_non_query(sql=sql, bind_var=(user_name, user_email, hashed_password))
+            db_connect.execute_non_query(sql=sql, bind_var=(user_name, user_email, hashed_password, salt))
             db_connect.commit()
         except Exception as e:
             print(e)
@@ -52,7 +52,7 @@ def hash_password(password):
     hash_value = hashlib.sha256(password.encode() + salt_encode)
     print(hash_value)
     print("hash16", hash_value.hexdigest())#ハッシュオブジェクトからハッシュ値(16進数文字列)取得,sha256は16進数もじれt５うを生成する仕組み
-    return hash_value.hexdigest()
+    return hash_value.hexdigest(), salt_encode
 
 def get_register_user_data(request_data):
     user_name = request_data["user"]["name"]
