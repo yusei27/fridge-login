@@ -18,7 +18,7 @@ def register_user():
         hashed_password, salt = hash_password(user_password)
         
         sql = f"""
-            INSERT INTO "fridge-system".user_table
+            INSERT INTO "fridge_system".user_table
             (name_user, mail, password, salt)
                 VALUES (%s, %s, %s, %s);    
         """
