@@ -15,20 +15,21 @@ class DbConnectPostgres:
         :return: None
         """
         # コンフィグファイルからデータを取得
-        config_db = configparser.ConfigParser()
-        config_ini_path = "./config/dbconfig.ini"
+        # config_db = configparser.ConfigParser()
+        # config_ini_path = "./config/dbconfig.ini"
 
-        # 指定したiniファイルが存在しない場合、エラー発生
-        if not os.path.exists(config_ini_path):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), config_ini_path)
-        config_db.read(config_ini_path)
-        print(config_db)
+        # # 指定したiniファイルが存在しない場合、エラー発生
+        # if not os.path.exists(config_ini_path):
+        #     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), config_ini_path)
+        # config_db.read(config_ini_path)
+        # print(config_db)
         # 接続情報の取得
         host = os.environ.get("host")
         port = os.environ.get("db_port")
         dbname = os.environ.get("db_name")
         user = os.environ.get("db_user")
         password = os.environ.get("db_password")
+        print(host, port, dbname, user, password)
         # コネクションを確立する
         self.con = psycopg2.connect(
             host=host, port=port, dbname=dbname, user=user, password=password
@@ -61,7 +62,7 @@ class DbConnectPostgres:
             self.cursor.execute(sql)
         else:
             # バインド変数がある場合は指定して実行
-            print(sql)
+            print("bind_varあり", sql)
             self.cursor.execute(sql, bind_var)
         result = []
         if count == 0:
