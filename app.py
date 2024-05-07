@@ -1,7 +1,12 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 from flask import request
 import db.db_connect_postgresql as db
+
+from psycopg2.sql import Identifier, Literal
+from psycopg2.sql import SQL
+
+import traceback
 app = Flask(__name__)
 #特定のオリジンだけを許可する
 
@@ -52,27 +57,50 @@ def login():
     try:
         print("db接続")
         db_connect = db.DbConnectPostgres()
-        sql = f"""SELECT salt 
-        FROM "fridge_system".user_table 
-        WHERE mail=%s;"""
-        salt = db_connect.execute_query(sql=sql, bind_var=(str(user_email),))
-        hash_value, _ = encode_password(user_password, salt)
+        sql = SQL("""SELECT salt 
+        FROM "fridge_system".user_table
+        WHERE mail={user_email};""").format(
+            user_email = Literal(user_email)
+        )
+        result = db_connect.execute_query(sql=sql)
+        print("result", result)
+        if len(result) == 0:
+            #メールアドレスが登録されていない
+            db_connect.commit()
+            return Response(status=300, response=jsonify({'content':"このメールアドレスは登録されていません。"}))
+        elif len(result) == 1:
+            #正常動作、ソルトを想定通り取得できたので、パスワード認証
+            salt = result[0]["salt"]
+            hash_value, _ = encode_password(user_password, salt)
+            
         
-    
-        sql = f"""SELECT count(use_email)
-        FROM "fridge_system".user_table 
-        WHERE mail=%s AND password=%s;"""
-        num_login_user = db_connect.execute_query(sql=sql, bind_var=(user_email, hash_value.hexdigest()))
-        print("ログインユーザー")
+            sql =SQL("""SELECT count(mail)
+            FROM {schema}.{table} 
+            WHERE mail={user_email} AND password={password};""").format(
+                schema = Identifier("fridge_system"),
+                table = Identifier("user_table"),
+                user_email = Literal(user_email),
+                password = Literal(hash_value.hexdigest())
+            )
+            result = db_connect.execute_query(sql=sql)
+            num_login_user = result[0]["count"]
+            print("num_login_user", num_login_user)
+            print("ログインユーザー")
+            if num_login_user == "1":
+                print("1")
+                return Response(status=200, response=jsonify({"num_login_user":num_login_user}))
+            else:
+                print("1じゃない")
+                return Response(status=300, response=jsonify({"num_login_user":num_login_user, "content":"同じメールアドレスで複数登録されています"}))
+        else:
+            #想定外の動作
+            return Response(status=300, response=jsonify({'content':"メースアドレスの照合が想定外の動作", "num_salt":len(salt)}))
     except Exception as e:
-        print(e)
+        print(traceback.format_exc())
         db_connect.rollback()
         print("ロールバックを実行しました。")
         return jsonify({'status':300, 'data':3})
-    if num_login_user == "1":
-        return jsonify({'status':200, "num_login_user":num_login_user})
-    else:
-        return jsonify({'status':300, "num_login_user":num_login_user})
+
     
 
 
@@ -81,20 +109,21 @@ def hash_password(password):
     import base64
     import hashlib
     #ソルトを生成
-    salt = os.urandom(32)
-    print("salt", salt)
-    hash_value, salt_encode = encode_password(password, salt)
-    return hash_value.hexdigest(), salt_encode
+    # salt = os.urandom(32)
+    # print("salt", salt)
+    salt_decode = base64.b64encode(os.urandom(32)).decode('utf8')
+    hash_value = encode_password(password, salt_decode)
+    print("salt", salt_decode)
+    return hash_value.hexdigest(), salt_decode
 
 def encode_password(password,salt):
-    import base64
     import hashlib
-    salt_encode = base64.b64encode(salt)
+    
     #パスワードにソルトを付与してハッシュ値生成
-    hash_value = hashlib.sha256(password.encode() + salt_encode)
+    hash_value = hashlib.sha256(password.encode() + salt.encode())
     print(hash_value)
     print("hash16", hash_value.hexdigest())#ハッシュオブジェクトからハッシュ値(16進数文字列)取得,sha256は16進数もじれt５うを生成する仕組み
-    return hash_value, salt_encode
+    return hash_value, salt
 
 def get_register_user_data(request_data):
     user_name = request_data["user"]["name"]
