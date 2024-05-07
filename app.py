@@ -7,6 +7,7 @@ from psycopg2.sql import Identifier, Literal
 from psycopg2.sql import SQL
 
 import traceback
+import json
 app = Flask(__name__)
 #特定のオリジンだけを許可する
 
@@ -71,7 +72,7 @@ def login():
         elif len(result) == 1:
             #正常動作、ソルトを想定通り取得できたので、パスワード認証
             salt = result[0]["salt"]
-            hash_value, _ = encode_password(user_password, salt)
+            hash_value = encode_password(user_password, salt)
             
         
             sql =SQL("""SELECT count(mail)
@@ -86,15 +87,15 @@ def login():
             num_login_user = result[0]["count"]
             print("num_login_user", num_login_user)
             print("ログインユーザー")
-            if num_login_user == "1":
+            if num_login_user == 1:
                 print("1")
-                return Response(status=200, response=jsonify({"num_login_user":num_login_user}))
+                return Response(status=200, response=json.dumps({"num_login_user":num_login_user}))
             else:
                 print("1じゃない")
-                return Response(status=300, response=jsonify({"num_login_user":num_login_user, "content":"同じメールアドレスで複数登録されています"}))
+                return Response(status=300, response=json.dumps({"num_login_user":num_login_user, "content":"同じメールアドレスで複数登録されています"}))
         else:
             #想定外の動作
-            return Response(status=300, response=jsonify({'content':"メースアドレスの照合が想定外の動作", "num_salt":len(salt)}))
+            return Response(status=300, response=json.dumps({'content':"メースアドレスの照合が想定外の動作", "num_salt":len(result)}))
     except Exception as e:
         print(traceback.format_exc())
         db_connect.rollback()
@@ -107,7 +108,6 @@ def login():
 def hash_password(password):
     import os
     import base64
-    import hashlib
     #ソルトを生成
     # salt = os.urandom(32)
     # print("salt", salt)
@@ -118,12 +118,11 @@ def hash_password(password):
 
 def encode_password(password,salt):
     import hashlib
-    
     #パスワードにソルトを付与してハッシュ値生成
     hash_value = hashlib.sha256(password.encode() + salt.encode())
     print(hash_value)
     print("hash16", hash_value.hexdigest())#ハッシュオブジェクトからハッシュ値(16進数文字列)取得,sha256は16進数もじれt５うを生成する仕組み
-    return hash_value, salt
+    return hash_value
 
 def get_register_user_data(request_data):
     user_name = request_data["user"]["name"]
