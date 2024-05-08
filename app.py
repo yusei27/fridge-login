@@ -11,8 +11,8 @@ import json
 app = Flask(__name__)
 #特定のオリジンだけを許可する
 
-CORS(app)  # すべてのオリジンからのアクセスを許可
-#cors = CORS(app, resources={r"/*":{"origin": ["http://localhost:5173","http://localhost:3000s"]}})
+#CORS(app)  # すべてのオリジンからのアクセスを許可
+cors = CORS(app, resources={r"/*":{"origin": ["http://localhost:5173","http://localhost:3000"]}})
 
 @app.route('/register/user', methods=["POST"])
 def register_user():
