@@ -24,11 +24,11 @@ class DbConnectPostgres:
         # config_db.read(config_ini_path)
         # print(config_db)
         # 接続情報の取得
-        host = os.environ.get("host")
-        port = os.environ.get("db_port")
-        dbname = os.environ.get("db_name")
-        user = os.environ.get("db_user")
-        password = os.environ.get("db_password")
+        host = os.environ.get("DB_HOST")
+        port = os.environ.get("DB_PORT")
+        dbname = os.environ.get("DB_NAME")
+        user = os.environ.get("DB_USER")
+        password = os.environ.get("DB_PASSWORD")
         print(host, port, dbname, user, password)
         # コネクションを確立する
         self.con = psycopg2.connect(
