@@ -24,7 +24,8 @@ COPY ./ /fridge-login/
 RUN pipenv install
 
 #API起動
-CMD ["pipenv", "run", "python", "app.py"]
+#CMD ["pipenv", "run", "python", "app.py"]
+CMD ["pipenv", "run", "gunicorn", "--config", "./wsgi/gunicorn.py"]
 #[各種コマンド]
 # docker build . -t example3:latest 
 
